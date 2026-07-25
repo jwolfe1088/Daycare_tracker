@@ -2,9 +2,10 @@
 Core functions for Cheryl's Doggie Daycare tracker.
 """
 import sqlite3
+import os
 from datetime import date
 
-DB_NAME = "daycare.db"
+
 
 # --- Pricing config - adjust these if rates ever change ---
 ONE_DOG_DAILY_RATE = 26.0
@@ -23,9 +24,12 @@ PACKAGE_PRICES = {
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_NAME)
+    # Look up the environment variable dynamically right now!
+    db_path = os.environ.get("DATABASE_PATH", "daycare.db")
+    
+    conn = sqlite3.connect(db_path)
     _ensure_checked_out_column(conn)
-    return conn
+    return conn  # Made sure this returns 'conn'
 
 
 def _ensure_checked_out_column(conn):
