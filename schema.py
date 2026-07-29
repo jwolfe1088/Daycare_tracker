@@ -2,13 +2,19 @@
 Database schema for Cheryl's Doggie Daycare tracker.
 Run this once to create the database and tables.
 """
+import os
 import sqlite3
 
-DB_NAME = "daycare.db"
+# --- AUTOMATION UPDATE ---
+# If 'DATABASE_PATH' is set in the environment (by our test framework), use it.
+# Otherwise, default to your live production database.
+# -------------------------
 
 
 def create_database():
-    conn = sqlite3.connect(DB_NAME)
+    db_name = os.environ.get("DATABASE_PATH", "daycare.db")
+
+    conn = sqlite3.connect(os.environ.get("DATABASE_PATH", "daycare.db"))
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -60,12 +66,13 @@ def create_database():
     conn.commit()
     conn.close()
     migrate_existing_database()
-    print(f"Database '{DB_NAME}' created with tables: clients, dogs, checkins, purchases")
+    db_name = os.environ.get("DATABASE_PATH", "daycare.db")
+    print(f"Database '{db_name}' created with tables: clients, dogs, checkins, purchases")
 
 
 def migrate_existing_database():
     """Safely adds new columns to an existing database without touching any existing data."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(os.environ.get("DATABASE_PATH", "daycare.db"))
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(checkins)")
     existing_columns = [row[1] for row in cursor.fetchall()]

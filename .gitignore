@@ -2,3 +2,5 @@ daycare.db
 Run Daycare Tracker.bat
 __pycache__/
 *.pyc
+.venv/
+.pytest_cache/
