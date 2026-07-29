@@ -2,6 +2,7 @@ import sqlite3
 import os
 import pytest
 import pexpect
+from daycare import add_dog, check_in, get_unpaid_visits
 
 def test_add_client_successfully(spawn_app):
     child = spawn_app()
@@ -99,3 +100,9 @@ def test_no_input_add_client(spawn_app):
     
      db_name, = client_row
      assert db_name == ""
+
+def test_unpaid_daily_visits_total(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-07-20")
+     check_in(existing_client, [dog_id], "daily", "2026-07-21")
+
