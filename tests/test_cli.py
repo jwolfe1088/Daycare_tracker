@@ -2,7 +2,7 @@ import sqlite3
 import os
 import pytest
 import pexpect
-from daycare import add_dog, check_in, get_unpaid_visits
+from daycare import add_dog, check_in, get_unpaid_visits, get_balance, low_balance_clients
 
 def test_add_client_successfully(spawn_app):
     child = spawn_app()
@@ -105,4 +105,19 @@ def test_unpaid_daily_visits_total(existing_client):
      dog_id = add_dog(existing_client, "Munchi")
      check_in(existing_client, [dog_id], "daily", "2026-07-20")
      check_in(existing_client, [dog_id], "daily", "2026-07-21")
+     result = get_unpaid_visits(existing_client, "2026-07-20", "2026-07-21")
+     assert result["num_days"] == 2
+     assert result["total_owed"] == 52.00
 
+def test_get_balance_logs_daily_payments(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-07-20")
+     check_in(existing_client, [dog_id], "daily", "2026-07-21")
+     assert get_balance(existing_client) == 0.00
+# This test shows buggy behavior and points out the get_balance function 
+# only ever queries balance_days and doesn't take checkins, payment_type 
+# or paid into account at all
+
+# Note: low_balance_clients() shares this same bug — it also only queries
+# balance_days, so clients with unpaid daily charges won't appear there either.
+     
