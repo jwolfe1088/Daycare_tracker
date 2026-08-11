@@ -2,7 +2,7 @@ import sqlite3
 import os
 import pytest
 import pexpect
-from daycare import add_dog, check_in, get_unpaid_visits, get_balance, low_balance_clients
+from daycare import add_dog, check_in, get_unpaid_visits, get_balance, low_balance_clients, check_out_dog
 
 def test_add_client_successfully(spawn_app):
     child = spawn_app()
@@ -121,3 +121,20 @@ def test_get_balance_logs_daily_payments(existing_client):
 # Note: low_balance_clients() shares this same bug — it also only queries
 # balance_days, so clients with unpaid daily charges won't appear there either.
      
+def test_check_out_flow(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-08-01")
+     result = check_out_dog(dog_id, "2026-08-01")
+     assert result["paid"] == 0.00
+     assert result["client_id"] == existing_client
+     
+     db_path = os.environ.get("DATABASE_PATH")
+
+     conn = sqlite3.connect(db_path)
+     cursor = conn.cursor()
+
+     cursor.execute("SELECT checked_out FROM checkins WHERE dog_id = ? AND checkin_date = ?", (dog_id, "2026-08-01"))
+     client_row = cursor.fetchone()
+     conn.close()
+     db_checked_out, = client_row
+     assert db_checked_out == 1
