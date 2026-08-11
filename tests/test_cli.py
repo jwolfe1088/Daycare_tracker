@@ -2,7 +2,7 @@ import sqlite3
 import os
 import pytest
 import pexpect
-from daycare import add_dog, check_in, get_unpaid_visits, get_balance, low_balance_clients, check_out_dog
+from daycare import add_dog, check_in, get_unpaid_visits, get_balance, low_balance_clients, check_out_dog, delete_client
 
 def test_add_client_successfully(spawn_app):
     child = spawn_app()
@@ -138,3 +138,17 @@ def test_check_out_flow(existing_client):
      conn.close()
      db_checked_out, = client_row
      assert db_checked_out == 1
+
+def test_delete_client(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-08-01")
+     result = delete_client(existing_client)
+     
+     db_path = os.environ.get("DATABASE_PATH")
+
+     conn = sqlite3.connect(db_path)
+     cursor = conn.cursor()
+
+     cursor.execute("SELECT client_id FROM clients WHERE client_id = ?", (existing_client,)) 
+     client_row = cursor.fetchone()
+     assert client_row is None
