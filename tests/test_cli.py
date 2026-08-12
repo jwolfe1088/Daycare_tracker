@@ -152,3 +152,12 @@ def test_delete_client(existing_client):
      cursor.execute("SELECT client_id FROM clients WHERE client_id = ?", (existing_client,)) 
      client_row = cursor.fetchone()
      assert client_row is None
+
+     cursor.execute("SELECT client_id FROM dogs WHERE client_id = ?", (existing_client,))
+     dog_row = cursor.fetchone()
+     assert dog_row is None
+
+     cursor.execute("SELECT client_id FROM checkins WHERE client_id = ?", (existing_client,))
+     checkin_row = cursor.fetchone()
+     conn.close()
+     assert checkin_row is None
