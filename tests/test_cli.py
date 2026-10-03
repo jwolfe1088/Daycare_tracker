@@ -2,6 +2,7 @@ import sqlite3
 import os
 import pytest
 import pexpect
+from daycare import add_dog, check_in, get_unpaid_visits, get_balance, low_balance_clients, check_out_dog, delete_client, delete_dog
 
 def test_add_client_successfully(spawn_app):
     child = spawn_app()
@@ -99,3 +100,85 @@ def test_no_input_add_client(spawn_app):
     
      db_name, = client_row
      assert db_name == ""
+
+def test_unpaid_daily_visits_total(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-07-20")
+     check_in(existing_client, [dog_id], "daily", "2026-07-21")
+     result = get_unpaid_visits(existing_client, "2026-07-20", "2026-07-21")
+     assert result["num_days"] == 2
+     assert result["total_owed"] == 52.00
+
+def test_get_balance_logs_daily_payments(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-07-20")
+     check_in(existing_client, [dog_id], "daily", "2026-07-21")
+     assert get_balance(existing_client) == 0.00
+# This test shows buggy behavior and points out the get_balance function 
+# only ever queries balance_days and doesn't take checkins, payment_type 
+# or paid into account at all
+
+# Note: low_balance_clients() shares this same bug — it also only queries
+# balance_days, so clients with unpaid daily charges won't appear there either.
+     
+def test_check_out_flow(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-08-01")
+     result = check_out_dog(dog_id, "2026-08-01")
+     assert result["paid"] == 0.00
+     assert result["client_id"] == existing_client
+     
+     db_path = os.environ.get("DATABASE_PATH")
+
+     conn = sqlite3.connect(db_path)
+     cursor = conn.cursor()
+
+     cursor.execute("SELECT checked_out FROM checkins WHERE dog_id = ? AND checkin_date = ?", (dog_id, "2026-08-01"))
+     client_row = cursor.fetchone()
+     conn.close()
+     db_checked_out, = client_row
+     assert db_checked_out == 1
+
+def test_delete_client(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-08-01")
+     result = delete_client(existing_client)
+     
+     db_path = os.environ.get("DATABASE_PATH")
+
+     conn = sqlite3.connect(db_path)
+     cursor = conn.cursor()
+
+     cursor.execute("SELECT client_id FROM clients WHERE client_id = ?", (existing_client,)) 
+     client_row = cursor.fetchone()
+     assert client_row is None
+
+     cursor.execute("SELECT client_id FROM dogs WHERE client_id = ?", (existing_client,))
+     dog_row = cursor.fetchone()
+     assert dog_row is None
+
+     cursor.execute("SELECT client_id FROM checkins WHERE client_id = ?", (existing_client,))
+     checkin_row = cursor.fetchone()
+     conn.close()
+     assert checkin_row is None
+
+def test_delete_dog(existing_client):
+     dog_id = add_dog(existing_client, "Munchi")
+     check_in(existing_client, [dog_id], "daily", "2026-08-01")
+     result = delete_dog(dog_id)
+     
+     db_path = os.environ.get("DATABASE_PATH")
+
+     conn = sqlite3.connect(db_path)
+     cursor = conn.cursor()
+
+     cursor.execute("SELECT dog_id FROM dogs WHERE dog_id = ?", (dog_id,))
+     dog_id_row = cursor.fetchone()
+     assert dog_id_row is None
+
+     cursor.execute("SELECT dog_id FROM checkins WHERE dog_id = ?", (dog_id,))
+     dog_checkins_row = cursor.fetchone()
+     conn.close()
+     assert dog_checkins_row is None
+
+
