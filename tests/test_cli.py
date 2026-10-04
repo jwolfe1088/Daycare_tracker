@@ -100,6 +100,10 @@ def test_no_input_add_client(spawn_app):
     
      db_name, = client_row
      assert db_name == ""
+# KNOWN ISSUE
+# this test shows new clients created with a blank name input are still saved into the database.
+# phone number and email inputs are intentially optional, but name should not be optional.
+# this is an annoying bug that crowds up the customer database with useless entries.
 
 def test_unpaid_daily_visits_total(existing_client):
      dog_id = add_dog(existing_client, "Munchi")
@@ -114,9 +118,12 @@ def test_get_balance_logs_daily_payments(existing_client):
      check_in(existing_client, [dog_id], "daily", "2026-07-20")
      check_in(existing_client, [dog_id], "daily", "2026-07-21")
      assert get_balance(existing_client) == 0.00
+# KNOWN ISSUE
 # This test shows buggy behavior and points out the get_balance function 
 # only ever queries balance_days and doesn't take checkins, payment_type 
 # or paid into account at all
+# this bug allows daily pay clients to go days without paying with no easy
+# to reference record
 
 # Note: low_balance_clients() shares this same bug — it also only queries
 # balance_days, so clients with unpaid daily charges won't appear there either.
@@ -143,6 +150,7 @@ def test_delete_client(existing_client):
      dog_id = add_dog(existing_client, "Munchi")
      check_in(existing_client, [dog_id], "daily", "2026-08-01")
      result = delete_client(existing_client)
+     assert result is True
      
      db_path = os.environ.get("DATABASE_PATH")
 
@@ -166,6 +174,7 @@ def test_delete_dog(existing_client):
      dog_id = add_dog(existing_client, "Munchi")
      check_in(existing_client, [dog_id], "daily", "2026-08-01")
      result = delete_dog(dog_id)
+     assert result is True
      
      db_path = os.environ.get("DATABASE_PATH")
 
